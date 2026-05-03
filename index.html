@@ -14,6 +14,9 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- 폭죽 효과 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <style>
         :root { --accent: #007bff; --txt: #333; --bg: #fff; --brd: #eee; --card-bg: #f9f9f9; }
         body.dark-mode { --txt: #f5f5f5; --bg: #121212; --brd: #333; --card-bg: #1e1e1e; }
@@ -66,6 +69,7 @@
             text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.1);
             max-width: 800px; width: 100%;
+            transition: all 0.5s ease-in-out;
         }
         
         /* Countdown Display */
@@ -88,6 +92,24 @@
         }
         .countdown-labels span { flex: 1; max-width: 120px; }
 
+        /* YouTube Container */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #000;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
         /* Footer */
         footer {
             width: 100%; padding: 60px 20px; border-top: 1px solid var(--brd);
@@ -103,7 +125,8 @@
         @media (max-width: 768px) {
             .countdown-display { font-size: 2.2rem; }
             .timer-header h1 { font-size: 1.8rem; }
-            .nav-links { display: none; } /* 모바일에서 네비 가림 */
+            .nav-links { display: none; } 
+            .timer-card { padding: 30px 20px; }
         }
     </style>
 </head>
@@ -133,13 +156,13 @@
 
     <main>
         <section class="timer-header">
-            <h1>1st Year Anniversary</h1>
-            <p>2026년 9월 20일, 민양테크의 새로운 도약까지</p>
+            <h1 id="main-title">1st Year Anniversary</h1>
+            <p id="sub-title">2026년 9월 20일, 민양테크의 새로운 도약까지</p>
         </section>
 
-        <div class="timer-card">
+        <div class="timer-card" id="timer-card">
             <div id="countdown" class="countdown-display">0000/00/00/00</div>
-            <div class="countdown-labels">
+            <div class="countdown-labels" id="countdown-labels">
                 <span>Year</span>
                 <span>Month</span>
                 <span>Day</span>
@@ -167,35 +190,81 @@
     </footer>
 
     <script>
-        // 타겟 날짜 설정 (2026년 9월 20일 0시)
-        const targetDate = new Date("September 20, 2026 00:00:00").getTime();
+        // 타겟 날짜 설정 (2026년 9월 20일 14시)
+        const targetDate = new Date("September 20, 2026 14:00:00").getTime();
+        let isCelebrationStarted = false;
+
+        function triggerCelebration() {
+            if (isCelebrationStarted) return;
+            isCelebrationStarted = true;
+
+            // 1. UI 텍스트 변경
+            document.getElementById("main-title").innerText = "HAPPY 1ST ANNIVERSARY!";
+            document.getElementById("sub-title").innerText = "민양테크의 새로운 시작을 함께해주세요.";
+
+            // 2. 카운트다운 숫자를 지우고 유튜브 영상 삽입
+            const card = document.getElementById("timer-card");
+            card.innerHTML = `
+                <div class="video-container">
+                    <iframe 
+                        src="https://www.youtube.com/embed/H7hbGPBi5ac?autoplay=1&rel=0" 
+                        title="Minyang Tech 1st Anniversary" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            `;
+
+            // 3. 폭죽 효과 무한 재생
+            const duration = 15 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                // 무한 재생을 위해 시간 제한 없이 계속 호출하거나, 
+                // 특정 간격으로 계속 실행
+                confetti(Object.assign({}, defaults, { 
+                    particleCount: 50, 
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+                }));
+                confetti(Object.assign({}, defaults, { 
+                    particleCount: 50, 
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+                }));
+            }, 500);
+        }
 
         function updateCountdown() {
             const now = new Date().getTime();
             const distance = targetDate - now;
 
-            if (distance < 0) {
-                document.getElementById("countdown").innerHTML = "EVENT STARTED";
+            if (distance <= 0) {
+                triggerCelebration();
                 return;
             }
 
-            // 시간 계산 로직 수정
             const msPerSec = 1000;
             const msPerMin = msPerSec * 60;
             const msPerHour = msPerMin * 60;
             const msPerDay = msPerHour * 24;
-            const msPerMonth = msPerDay * 30.44; // 평균 한달
+            const msPerMonth = msPerDay * 30.44; 
             const msPerYear = msPerDay * 365.25;
 
             const years = Math.floor(distance / msPerYear);
             const months = Math.floor((distance % msPerYear) / msPerMonth);
             const days = Math.floor((distance % msPerMonth) / msPerDay);
-            
-            // 초 단위를 0-59 범위로 수정
             const seconds = Math.floor((distance % msPerMin) / msPerSec);
 
-            document.getElementById("countdown").innerHTML = 
-                `${String(years).padStart(4, '0')}/${String(months).padStart(2, '0')}/${String(days).padStart(2, '0')}/${String(seconds).padStart(2, '0')}`;
+            const display = document.getElementById("countdown");
+            if(display) {
+                display.innerHTML = 
+                    `${String(years).padStart(4, '0')}/${String(months).padStart(2, '0')}/${String(days).padStart(2, '0')}/${String(seconds).padStart(2, '0')}`;
+            }
         }
 
         // 1초마다 업데이트
